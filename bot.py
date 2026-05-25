@@ -12,25 +12,17 @@ already_sent = set()
 
 def send_telegram(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    requests.post(url, json={
-        "chat_id": CHAT_ID,
-        "text": text
-    }, timeout=15)
+    requests.post(url, json={"chat_id": CHAT_ID, "text": text}, timeout=15)
 
 
 def get_live_matches():
-    url = "https://v1.tennis.api-sports.io/games"
-
-    headers = {
-        "x-apisports-key": API_KEY
-    }
-
+    url = "https://api.api-tennis.com/tennis/"
     params = {
-        "live": "all"
+        "method": "get_livescore",
+        "APIkey": API_KEY
     }
 
-    r = requests.get(url, headers=headers, params=params, timeout=20)
-
+    r = requests.get(url, params=params, timeout=20)
     print("API status:", r.status_code)
 
     if r.status_code != 200:
@@ -38,7 +30,17 @@ def get_live_matches():
         return []
 
     data = r.json()
-    return data.get("response", [])
+    return data.get("result", [])
+
+
+def get_first_set_score(match):
+    scores = match.get("scores", [])
+
+    for s in scores:
+        if str(s.get("score_set")) == "1":
+            return int(s.get("score_first", -1)), int(s.get("score_second", -1))
+
+    return None, None
 
 
 def check_matches():
@@ -47,25 +49,15 @@ def check_matches():
 
     for match in matches:
         try:
-            match_id = str(match.get("id"))
+            match_id = str(match.get("event_key"))
 
-            players = match.get("players", {})
-            home = players.get("home", {}).get("name", "Player 1")
-            away = players.get("away", {}).get("name", "Player 2")
+            home = match.get("event_first_player", "Player 1")
+            away = match.get("event_second_player", "Player 2")
 
-            scores = match.get("scores", {})
+            home_score, away_score = get_first_set_score(match)
 
-            home_sets = scores.get("home", {})
-            away_sets = scores.get("away", {})
-
-            home_first_set = home_sets.get("set_1")
-            away_first_set = away_sets.get("set_1")
-
-            if home_first_set is None or away_first_set is None:
+            if home_score is None or away_score is None:
                 continue
-
-            home_score = int(home_first_set)
-            away_score = int(away_first_set)
 
             is_bagel = (
                 (home_score == 6 and away_score == 0)
@@ -82,7 +74,6 @@ def check_matches():
 
                 send_telegram(message)
                 already_sent.add(match_id)
-
                 print("Alert wysłany:", message)
 
         except Exception as e:
