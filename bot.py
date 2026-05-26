@@ -47,6 +47,16 @@ def check_matches():
     matches = get_live_matches()
     print("Live matches:", len(matches))
 
+    for m in matches:
+    print(
+        "MATCH:",
+        m.get("event_first_player"),
+        "vs",
+        m.get("event_second_player"),
+        "| score:",
+        m.get("event_final_result")
+    )
+
     for match in matches:
         try:
             match_id = str(match.get("event_key"))
