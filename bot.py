@@ -81,6 +81,7 @@ def check_matches():
 
 
 print("Bot uruchomiony — API Tennis")
+send_telegram("✅ TEST: bot działa i Telegram odbiera wiadomości")
 
 while True:
     try:
